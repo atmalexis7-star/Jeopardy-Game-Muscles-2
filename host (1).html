@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Muscle Jeopardy — HOST</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#FFD700;--gold2:#FFA500;--dk:#060918;--cyn:#00e5ff;--red:#ff2d55;--grn:#00ff88}
+html,body{min-height:100vh;background:var(--dk);font-family:'Rajdhani',sans-serif;color:#fff;overflow-x:hidden}
+canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+.z{position:relative;z-index:2}
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.screen.on{display:flex}
+.title{font-family:'Anton',sans-serif;font-size:clamp(48px,8vw,88px);color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,.6),4px 4px 0 #7a5500;letter-spacing:4px;text-align:center;line-height:.9;animation:pop .7s cubic-bezier(.17,.67,.4,1.3) both}
+.sub{font-family:'Oswald',sans-serif;font-size:clamp(11px,1.8vw,17px);letter-spacing:6px;color:rgba(255,255,255,.4);text-transform:uppercase;text-align:center;margin:12px 0 32px;animation:up .6s ease .3s both}
+.card{background:rgba(255,255,255,.04);border:1.5px solid rgba(0,229,255,.22);border-radius:18px;padding:26px 28px;max-width:620px;width:100%;backdrop-filter:blur(12px);animation:up .6s ease .45s both}
+.lbl{font-size:11px;letter-spacing:4px;color:var(--cyn);text-transform:uppercase;margin-bottom:8px}
+.code-big{font-family:'Anton',sans-serif;font-size:clamp(36px,6vw,64px);color:var(--gold);letter-spacing:10px;text-shadow:0 0 20px rgba(255,215,0,.5);margin-bottom:6px}
+.url-show{font-size:12px;color:rgba(0,229,255,.7);margin-bottom:4px;word-break:break-all;cursor:pointer;text-decoration:underline}
+.copy-hint{font-size:11px;color:rgba(255,255,255,.35);margin-bottom:16px}
+#qr-img{display:block;margin:0 auto 18px;border-radius:8px;border:2px solid rgba(255,215,0,.2)}
+.hr{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);margin:16px 0}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.pslot{background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.14);border-radius:10px;padding:12px 8px;text-align:center;transition:all .3s;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pslot.has{border-style:solid;animation:jn .4s cubic-bezier(.17,.67,.4,1.3)}
+.pslot .pn{font-size:10px;letter-spacing:2px;opacity:.35;text-transform:uppercase;margin-bottom:3px}
+.pslot .nm{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600}
+.pslot .sc{font-size:12px;margin-top:2px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;padding:11px 24px;border-radius:8px;border:none;cursor:pointer;text-transform:uppercase;transition:all .15s}
+.btn-g{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dk);box-shadow:0 0 26px rgba(255,215,0,.4);font-size:17px;padding:14px 36px}
+.btn-g:hover{box-shadow:0 0 50px rgba(255,215,0,.7);transform:translateY(-2px)}
+.btn-o{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6)}
+.btn-o:hover{border-color:rgba(255,255,255,.5);color:#fff}
+.btn-r{background:rgba(255,45,85,.12);border:1px solid var(--red);color:var(--red)}
+.status-msg{font-size:13px;letter-spacing:2px;color:var(--cyn);text-transform:uppercase;animation:pulse 1.2s ease infinite;margin-bottom:10px}
+#board-sc{padding:10px 12px;align-items:stretch;padding-top:50px}
+#tbanner{position:fixed;top:0;left:0;right:0;z-index:100;display:none;padding:8px 16px;background:rgba(6,9,24,.94);border-bottom:1px solid rgba(255,255,255,.07);backdrop-filter:blur(10px);align-items:center;justify-content:space-between}
+.tnm{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;animation:blink 1s ease infinite}
+.bhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.blog{font-family:'Anton',sans-serif;font-size:20px;color:var(--gold);text-shadow:0 0 12px rgba(255,215,0,.4);letter-spacing:2px}
+#sboard{display:flex;gap:5px;flex-wrap:wrap}
+.stag{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;padding:5px 11px;border-radius:50px;border:1.5px solid;letter-spacing:1px;transition:all .3s}
+.stag.active{animation:ptag 1s ease infinite}
+.jgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;flex:1}
+.cath{background:linear-gradient(160deg,#0d1a5e,#1a2d80);border:1px solid rgba(255,215,0,.28);border-radius:8px;padding:10px 5px;text-align:center;font-family:'Oswald',sans-serif;font-size:clamp(9px,1.3vw,13px);font-weight:700;color:var(--gold);text-transform:uppercase;min-height:50px;display:flex;align-items:center;justify-content:center;line-height:1.2;text-shadow:0 0 8px rgba(255,215,0,.3)}
+.jcell{background:linear-gradient(160deg,#0d1a6e,rgba(26,58,255,.12));border:1px solid rgba(255,215,0,.2);border-radius:8px;min-height:58px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'Anton',sans-serif;font-size:clamp(14px,2.2vw,25px);color:var(--gold);text-shadow:0 0 12px rgba(255,215,0,.5);transition:all .18s;animation:ci .4s cubic-bezier(.17,.67,.4,1.3) both}
+.jcell:hover{transform:scale(1.05);border-color:var(--gold);box-shadow:0 0 20px rgba(255,215,0,.35)}
+.jcell.done{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.05);color:transparent;text-shadow:none;cursor:default;pointer-events:none}
+.bfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+#qmod{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)}
+#qmod.on{display:flex}
+.qcard{background:linear-gradient(160deg,#0a1060,#040a3a);border:2px solid rgba(255,215,0,.42);border-radius:20px;padding:32px 26px;max-width:600px;width:100%;text-align:center;position:relative;box-shadow:0 0 70px rgba(26,58,255,.4);animation:cin .4s cubic-bezier(.17,.67,.4,1.3)}
+.qcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),var(--cyn),var(--gold),transparent);border-radius:20px 20px 0 0;animation:sh 2.5s linear infinite}
+.qcat{font-size:11px;letter-spacing:4px;color:var(--cyn);text-transform:uppercase;margin-bottom:5px}
+.qdiff{display:inline-block;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:3px 11px;border-radius:20px;margin-bottom:10px}
+.d0{background:rgba(0,255,136,.1);color:var(--grn);border:1px solid rgba(0,255,136,.3)}
+.d1{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.3)}
+.d2{background:rgba(255,165,0,.1);color:var(--gold2);border:1px solid rgba(255,165,0,.3)}
+.d3{background:rgba(255,45,85,.1);color:var(--red);border:1px solid rgba(255,45,85,.3)}
+.qpts{font-family:'Anton',sans-serif;font-size:48px;color:var(--gold);text-shadow:0 0 28px rgba(255,215,0,.6);margin-bottom:14px;line-height:1}
+.qtxt{font-family:'Oswald',sans-serif;font-size:clamp(14px,2vw,19px);line-height:1.55;margin-bottom:20px}
+.bstrip{background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;letter-spacing:2px;color:var(--cyn);text-transform:uppercase}
+.bwin{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--gold);margin-top:5px}
+.rbtn{font-family:'Anton',sans-serif;font-size:15px;letter-spacing:3px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dk);border:none;border-radius:10px;padding:13px 32px;cursor:pointer;box-shadow:0 0 26px rgba(255,215,0,.35);transition:all .2s;margin-bottom:14px}
+.rbtn:hover{transform:scale(1.04);box-shadow:0 0 46px rgba(255,215,0,.65)}
+.abox{display:none;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.22);border-radius:10px;padding:14px 15px;font-size:14px;line-height:1.6;text-align:left;margin-bottom:14px;animation:up .3s ease}
+.abox.on{display:block}
+.awdarea{display:none;margin-bottom:12px}
+.awdarea.on{display:block}
+.awdlbl{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:7px}
+.awdrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.ab{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;padding:7px 13px;border-radius:7px;border:1.5px solid;cursor:pointer;transition:all .15s;text-transform:uppercase;background:transparent}
+.ab:hover{transform:scale(1.07);filter:brightness(1.3)}
+.ab-none{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.38)}
+.ab-ded{border-color:var(--red);color:var(--red)}
+.cbtn{background:transparent;border:1px solid rgba(255,255,255,.16);color:rgba(255,255,255,.4);border-radius:7px;padding:9px 20px;cursor:pointer;font-size:12px;letter-spacing:2px;transition:all .2s;text-transform:uppercase;font-family:'Rajdhani',sans-serif}
+.cbtn:hover{border-color:rgba(255,255,255,.45);color:#fff}
+.steal-bar{background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.steal-label{font-size:11px;letter-spacing:3px;color:var(--red);text-transform:uppercase;margin-bottom:8px}
+.steal-btns{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.steal-btn{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;padding:7px 13px;border-radius:7px;border:1.5px solid;cursor:pointer;transition:all .15s;text-transform:uppercase;background:transparent}
+.steal-btn:hover{transform:scale(1.07);filter:brightness(1.3)}
+.wrong-btn{font-family:'Anton',sans-serif;font-size:14px;letter-spacing:2px;background:rgba(255,45,85,.15);border:1.5px solid var(--red);color:var(--red);border-radius:9px;padding:11px 24px;cursor:pointer;transition:all .2s;margin-bottom:14px;width:100%}
+.wrong-btn:hover{background:rgba(255,45,85,.28);transform:scale(1.02)}
+#bnot{display:none;position:fixed;top:58px;right:16px;z-index:2000;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dk);border-radius:12px;padding:12px 18px;font-family:'Anton',sans-serif;font-size:15px;letter-spacing:2px;box-shadow:0 0 36px rgba(255,215,0,.6);animation:bin .3s cubic-bezier(.17,.67,.4,1.3)}
+#sc-sc{padding:32px 20px}
+.sh{font-family:'Anton',sans-serif;font-size:clamp(40px,7vw,68px);color:var(--gold);text-shadow:0 0 36px rgba(255,215,0,.6);letter-spacing:4px;line-height:.9;margin-bottom:6px;text-align:center}
+.ss{font-size:11px;letter-spacing:4px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:26px;text-align:center}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:13px 17px;border-radius:12px;margin-bottom:8px;border:1.5px solid;font-family:'Oswald',sans-serif;font-size:16px;max-width:440px;width:100%;animation:sl .4s ease both}
+.srow:nth-child(1){animation-delay:.05s}.srow:nth-child(2){animation-delay:.1s}.srow:nth-child(3){animation-delay:.16s}.srow:nth-child(4){animation-delay:.22s}.srow:nth-child(5){animation-delay:.28s}.srow:nth-child(6){animation-delay:.34s}
+@keyframes pop{from{opacity:0;transform:scale(.65) translateY(18px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes jn{0%{transform:scale(.75);opacity:0}80%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes ptag{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes ci{from{opacity:0;transform:rotateY(70deg) scale(.88)}to{opacity:1;transform:rotateY(0) scale(1)}}
+@keyframes cin{from{opacity:0;transform:scale(.75) translateY(24px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes sh{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes bin{from{opacity:0;transform:scale(.5) translateX(28px)}to{opacity:1;transform:scale(1) translateX(0)}}
+@keyframes sl{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="bnot"></div>
+<div id="tbanner">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="dot" id="tdot"></div>
+    <div><div style="font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.35);text-transform:uppercase">Current Turn</div><div class="tnm" id="tnm">—</div></div>
+  </div>
+  <div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.28);text-transform:uppercase" id="tcnt"></div>
+</div>
+<div id="lobby-sc" class="screen z on">
+  <div class="title">MUSCLE<br>JEOPARDY</div>
+  <div class="sub">BIOL 2457 · Host Console</div>
+  <div class="card">
+    <div id="status-msg" class="status-msg">Connecting...</div>
+    <div id="room-section" style="display:none">
+      <div class="lbl">Students join at this link:</div>
+      <div class="code-big" id="rcode">——</div>
+      <div class="url-show" id="rurl" onclick="copyUrl()">—</div>
+      <div class="copy-hint" id="copy-hint">👆 Tap link to copy &nbsp;·&nbsp; Or scan QR code below</div>
+      <img id="qr-img" width="148" height="148" alt="QR Code — scan to join"/>
+      <div class="hr"></div>
+      <div class="pgrid" id="pgrid"></div>
+      <div class="acts">
+        <button class="btn btn-g" id="sbtn" onclick="startGame()">START GAME (0 joined)</button>
+        <button class="btn btn-o" onclick="resetGame()">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="board-sc" class="screen z">
+  <div class="bhead z"><div class="blog">MUSCLE JEOPARDY</div><div id="sboard"></div></div>
+  <div class="jgrid z" id="jgrid"></div>
+  <div class="bfoot z">
+    <button class="btn btn-o" style="font-size:12px;padding:7px 12px" onclick="skipTurn()">Skip Turn ⏭</button>
+    <button class="btn btn-o" style="font-size:12px;padding:7px 12px" onclick="showScores()">🏆 Scores</button>
+    <button class="btn btn-r" style="font-size:12px;padding:7px 12px" onclick="resetGame()">End Game</button>
+  </div>
+</div>
+<div id="qmod" onclick="outsideTap(event)">
+  <div class="qcard" onclick="event.stopPropagation()">
+    <div class="qcat" id="mcat"></div>
+    <div class="qdiff" id="mdiff"></div>
+    <div class="qpts" id="mpts"></div>
+    <div class="qtxt" id="mq"></div>
+    <div class="bstrip" id="bstrip"><div>🎯 Waiting for buzz-in from players...</div><div class="bwin" id="bwname"></div></div>
+    <button class="wrong-btn" id="wrong-btn" onclick="wrongAnswer()" style="display:none">❌ WRONG — Pass to Next Team</button>
+    <div class="steal-bar" id="steal-bar" style="display:none">
+      <div class="steal-label" id="steal-label">Steal opportunity — which team answers?</div>
+      <div class="steal-btns" id="steal-btns"></div>
+    </div>
+    <button class="rbtn" id="rbtn" onclick="revealAns()">REVEAL ANSWER</button>
+    <div class="abox" id="mans"></div>
+    <div class="awdarea" id="awda">
+      <div class="awdlbl">Award $<span id="awdpts"></span> to:</div>
+      <div class="awdrow" id="awdr"></div>
+    </div>
+    <button class="cbtn" onclick="closeQ()">Close &amp; Mark Used</button>
+  </div>
+</div>
+<div id="sc-sc" class="screen z">
+  <div class="sh">FINAL<br>SCORES</div>
+  <div class="ss">BIOL 2457 · Muscle Physiology Jeopardy</div>
+  <div id="sclist"></div>
+  <div class="acts" style="margin-top:22px">
+    <button class="btn btn-g" onclick="backBoard()">Back to Board</button>
+    <button class="btn btn-o" onclick="resetGame()">New Game</button>
+  </div>
+</div>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,set,onValue,update,remove,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+/*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SETUP YOUR FREE FIREBASE (5 minutes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Go to https://console.firebase.google.com
+2. Add project → skip Analytics → Create
+3. Left menu → Build → Realtime Database → Create database
+   → Choose any region → Start in TEST MODE → Enable
+4. Left menu → Project Settings (⚙ gear) → Your apps → Web (</>)
+   → Register app → Copy the firebaseConfig below
+5. Paste YOUR config values in the FIREBASE_CONFIG object below
+6. Copy the exact same config into player.html too
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*/
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyBRfWn7HNIz46OgOA4tYQvxR_rWYmmWqIM",
+  authDomain:"jeopardy-game-b8a10.firebaseapp.com",
+  databaseURL:"https://jeopardy-game-b8a10-default-rtdb.firebaseio.com",
+  projectId:"jeopardy-game-b8a10",
+  storageBucket:"jeopardy-game-b8a10.firebasestorage.app",
+  messagingSenderId:"964948969885",
+  appId:"1:964948969885:web:4afd045c03292b387a0774"
+};
+const CATS=['Muscle Structure','Contraction Mechanics','Action Potentials','Fiber Types & Energy','Muscle Performance'];
+const DIFFS=['Easy','Intermediate','Hard','Extreme'];
+const PTS=[200,400,600,800];
+const DC=['d0','d1','d2','d3'];
+const COLORS=['#4d6fff','#ff2d55','#00ff88','#ffd700','#00e5ff','#bf5af2'];
+const BGS=['rgba(77,111,255,.14)','rgba(255,45,85,.14)','rgba(0,255,136,.14)','rgba(255,215,0,.14)','rgba(0,229,255,.14)','rgba(191,90,242,.14)'];
+const Q=[
+  [{q:"What are the 3 types of muscle tissue?",a:"<strong>Skeletal</strong> (voluntary, striated), <strong>Cardiac</strong> (involuntary, heart only), <strong>Smooth</strong> (involuntary, hollow organs)."},
+   {q:"List the connective tissue layers of skeletal muscle outermost to innermost, and what each wraps.",a:"<strong>Epimysium</strong> → whole muscle. <strong>Perimysium</strong> → fascicles. <strong>Endomysium</strong> → individual fibers."},
+   {q:"Define sarcolemma, sarcoplasm, and sarcoplasmic reticulum. What is the SR's function?",a:"<strong>Sarcolemma</strong> = plasma membrane. <strong>Sarcoplasm</strong> = cytoplasm. <strong>SR</strong> = smooth ER specialized for <strong>calcium storage & release</strong>."},
+   {q:"Describe the full sarcomere: every band, zone, and line, and what filaments are in each region.",a:"<strong>Z discs</strong> anchor actin. <strong>M line</strong> anchors myosin. <strong>I band</strong> = actin only. <strong>H zone</strong> = myosin only. <strong>A band</strong> = myosin + zone of overlap."}],
+  [{q:"Do actin and myosin shorten during contraction? What actually happens?",a:"<strong>No.</strong> Actin slides toward M line. Z discs move closer → I bands & H zones shorten → zone of overlap increases. = <strong>Sliding Filament Mechanism</strong>."},
+   {q:"What two regulatory proteins control contraction, and what does each do?",a:"<strong>Tropomyosin</strong> blocks myosin-binding sites. <strong>Troponin</strong> binds Ca²⁺ and pivots tropomyosin away, exposing the sites."},
+   {q:"Name all 4 stages of the cross-bridge cycle in order.",a:"1) <strong>Cross-Bridge Formation</strong>. 2) <strong>Power Stroke</strong> (actin pulled toward M line). 3) <strong>Detachment</strong> (ATP binds myosin). 4) <strong>Cocking</strong> (ATP hydrolysis re-energizes myosin)."},
+   {q:"Describe complete muscle relaxation — Ca²⁺, troponin, tropomyosin, and why ATP is needed.",a:"ACh stops → SR <strong>pumps Ca²⁺ back</strong> (ATP required) → troponin releases Ca²⁺ → tropomyosin re-covers binding sites → muscle lengthens."}],
+  [{q:"What neurotransmitter is released at the NMJ, and what channel does it open?",a:"<strong>Acetylcholine (ACh)</strong> released by exocytosis. Binds <strong>chemically-gated Na⁺ channels</strong> → Na⁺ in → depolarization."},
+   {q:"How does an action potential travel along the sarcolemma?",a:"<strong>Voltage-gated Na⁺ channels</strong> open sequentially (wave of depolarization). Then <strong>voltage-gated K⁺ channels</strong> repolarize the membrane."},
+   {q:"Trace the AP from T-tubules to calcium release.",a:"AP into <strong>T-tubules</strong> → <strong>voltage-sensitive proteins</strong> press on <strong>SR Ca²⁺ release channels</strong> → <strong>Ca²⁺ floods sarcoplasm</strong> → binds troponin."},
+   {q:"Trace complete excitation-contraction coupling: motor neuron → cross-bridge formation.",a:"Motor neuron fires → <strong>ACh</strong> → Na⁺ channels → action potential → <strong>T-tubules</strong> → SR Ca²⁺ channels → <strong>Ca²⁺ binds troponin</strong> → tropomyosin moves → <strong>myosin binds actin</strong> → cross-bridge cycle."}],
+  [{q:"What is glycolysis — aerobic or anaerobic? How much ATP?",a:"<strong>Anaerobic</strong> breakdown of glucose. Yields only <strong>2 ATP per glucose</strong>. Fast but inefficient."},
+   {q:"Compare fast glycolytic vs slow oxidative fibers: diameter, ATP, fatigue resistance, speed.",a:"<strong>Fast Glycolytic:</strong> large, glycolysis, low fatigue, fast ATPase. <strong>Slow Oxidative:</strong> small, ETC aerobic, high fatigue resistance, slow ATPase, more mitochondria & myoglobin."},
+   {q:"Aerobic vs anaerobic ATP production — yield per glucose and exercise relevance.",a:"<strong>Glycolysis:</strong> 2 ATP (anaerobic, fast bursts). <strong>ETC:</strong> 34+ ATP (aerobic, needs O₂, endurance). Fiber type determines which dominates."},
+   {q:"Describe all 3 fiber types: ATP, ATPase, fatigue resistance, myoglobin, diameter, best sport.",a:"<strong>Fast Glycolytic:</strong> large, glycolysis, fast ATPase, low endurance → powerlifting. <strong>Slow Oxidative:</strong> small, ETC, slow ATPase, high endurance → marathons. <strong>Fast Oxidative:</strong> moderate, mostly aerobic, fast ATPase → tennis."}],
+  [{q:"Name the 4 characteristics of all muscle tissue.",a:"<strong>Excitability</strong>, <strong>Contractility</strong>, <strong>Extensibility</strong>, <strong>Elasticity</strong>."},
+   {q:"What is the Overload Principle? How do aerobic vs resistance exercise affect muscles?",a:"Muscles adapt when forced beyond current workload. <strong>Aerobic</strong> → more mitochondria, myoglobin, capillaries. <strong>Resistance</strong> → hypertrophy, more glycogen."},
+   {q:"Explain wave summation and tetanus at the cellular level.",a:"New AP before twitch completes → twitches <strong>summate</strong>. Ca²⁺ accumulates → more cross-bridges. <strong>Unfused tetanus</strong> = partial. <strong>Fused tetanus</strong> = sustained max contraction."},
+   {q:"Effects of aging, sex, and exercise on skeletal muscle — sarcopenia, hypertrophy, motor units, hormones.",a:"<strong>Aging:</strong> sarcopenia = fiber decline. <strong>Sex:</strong> equal strength/mass but males have more total mass (testosterone). <strong>Exercise:</strong> aerobic → red fiber endurance; resistance → white fiber hypertrophy."}]
+];
+// STARS
+(()=>{const c=document.getElementById('bg'),x=c.getContext('2d');let s=[];const rs=()=>{c.width=innerWidth;c.height=innerHeight};const mk=()=>{s=[];for(let i=0;i<180;i++)s.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.3+.2,a:Math.random(),v:Math.random()*.003+.001})};const dr=()=>{x.clearRect(0,0,c.width,c.height);s.forEach(p=>{p.a+=p.v;if(p.a>1||p.a<0)p.v=-p.v;x.globalAlpha=p.a*.7;x.fillStyle='#fff';x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fill()});x.globalAlpha=1;requestAnimationFrame(dr)};rs();mk();dr();window.addEventListener('resize',()=>{rs();mk()})})();
+// CONFETTI
+const cc=document.createElement('canvas');cc.style.cssText='position:fixed;inset:0;z-index:3000;pointer-events:none';document.body.appendChild(cc);
+const cx=cc.getContext('2d');cc.width=innerWidth;cc.height=innerHeight;
+let cp=[];
+function confetti(){const cols=['#FFD700','#FF2D55','#00E5FF','#00FF88','#BF5AF2','#FF9500'];for(let i=0;i<70;i++)cp.push({x:Math.random()*cc.width,y:-10,w:Math.random()*9+4,h:Math.random()*9+4,c:cols[~~(Math.random()*cols.length)],vx:(Math.random()-.5)*4,vy:Math.random()*4+2,rot:Math.random()*360,rv:Math.random()*5-2.5,a:1});animC()}
+function animC(){cx.clearRect(0,0,cc.width,cc.height);cp=cp.filter(p=>p.a>0);cp.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.rot+=p.rv;p.vy+=.07;p.a-=.007;cx.save();cx.globalAlpha=p.a;cx.fillStyle=p.c;cx.translate(p.x,p.y);cx.rotate(p.rot*Math.PI/180);cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore()});if(cp.length)requestAnimationFrame(animC)}
+// STATE
+let db,roomCode='',gameRef,players={},order=[],turnIdx=0,used={},cell=null,buzzer=null,started=false;
+try{
+  const app=initializeApp(FIREBASE_CONFIG);
+  db=getDatabase(app);
+  init();
+}catch(e){
+  document.getElementById('status-msg').textContent='⚠ Firebase not configured — see instructions in the HTML file';
+  document.getElementById('status-msg').style.color='#ff2d55';
+  document.getElementById('status-msg').style.animation='none';
+}
+async function init(){
+  document.getElementById('status-msg').textContent='Generating room...';
+  roomCode=Math.random().toString(36).slice(2,7).toUpperCase();
+  gameRef=ref(db,'rooms/'+roomCode);
+  await set(gameRef,{state:{started:false,turnIdx:0,used:{},activeQ:null,buzz:null},players:{}});
+  const playerUrl=location.href.replace(/host\.html.*/,'player.html')+'?room='+roomCode;
+  document.getElementById('rcode').textContent=roomCode;
+  document.getElementById('rurl').textContent=playerUrl;
+  document.getElementById('qr-img').src=`https://api.qrserver.com/v1/create-qr-code/?size=148x148&data=${encodeURIComponent(playerUrl)}&bgcolor=060918&color=FFD700&margin=2`;
+  document.getElementById('status-msg').style.display='none';
+  document.getElementById('room-section').style.display='block';
+  // Listen for players
+  onValue(ref(db,'rooms/'+roomCode+'/players'),snap=>{
+    const data=snap.val()||{};
+    Object.entries(data).forEach(([id,p])=>{
+      if(!players[id]){
+        const ci=order.length;
+        if(ci>=6)return;
+        players[id]={name:p.name,score:p.score||0,color:COLORS[ci],bg:BGS[ci]};
+        order.push(id);
+      } else {
+        players[id].score=p.score||0;
+      }
+    });
+    renderPGrid();
+    if(started){renderBoard();renderSboard();}
+  });
+  // Listen for buzz
+  onValue(ref(db,'rooms/'+roomCode+'/state/buzz'),snap=>{
+    const bz=snap.val();
+    if(bz&&bz.id&&!buzzer&&cell){
+      buzzer=bz.id;
+      const nm=players[bz.id]?.name||'?';
+      showBuzzNotify(nm);
+      document.getElementById('bwname').textContent='🔔 '+nm+' buzzed in!';
+      if(players[bz.id])document.getElementById('bstrip').style.borderColor=players[bz.id].color;
+      document.getElementById('wrong-btn').style.display='block';
+    }
+  });
+}
+window.copyUrl=function(){
+  const url=document.getElementById('rurl').textContent;
+  navigator.clipboard.writeText(url).then(()=>{
+    document.getElementById('copy-hint').textContent='✅ Copied to clipboard!';
+    setTimeout(()=>document.getElementById('copy-hint').textContent='👆 Tap link to copy · Or scan QR code below',2500);
+  }).catch(()=>prompt('Copy this link and send to students:',url));
+};
+function renderPGrid(){
+  const g=document.getElementById('pgrid');g.innerHTML='';
+  for(let i=0;i<6;i++){
+    const id=order[i],p=id?players[id]:null;
+    const d=document.createElement('div');
+    d.className='pslot'+(p?' has':'');
+    if(p){d.style.borderColor=p.color;d.style.background=p.bg;}
+    d.innerHTML=`<div class="pn">Player ${i+1}</div><div class="nm" style="color:${p?p.color:'rgba(255,255,255,.22)'}">${p?p.name:'— empty —'}</div>${p?`<div class="sc" style="color:${p.color}">$${p.score}</div>`:''}`;
+    g.appendChild(d);
+  }
+  document.getElementById('sbtn').textContent=`START GAME (${order.length} joined)`;
+}
+async function startGame(){
+  if(!order.length){alert('Wait for players to join!');return}
+  started=true;turnIdx=0;used={};
+  await update(ref(db,'rooms/'+roomCode+'/state'),{started:true,turnIdx:0,used:{},activeQ:null,buzz:null,turnId:order[0],turnName:players[order[0]].name});
+  show('board-sc');
+  document.getElementById('tbanner').style.display='flex';
+  renderBoard();renderSboard();updateBanner();
+}
+window.startGame=startGame;
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');}
+function renderBoard(){
+  const g=document.getElementById('jgrid');g.innerHTML='';
+  CATS.forEach(c=>{const h=document.createElement('div');h.className='cath';h.textContent=c;g.appendChild(h);});
+  PTS.forEach((pts,row)=>{
+    CATS.forEach((_,col)=>{
+      const k=`${col}-${row}`,done=used[k];
+      const c=document.createElement('div');
+      c.className='jcell'+(done?' done':'');
+      c.style.animationDelay=`${(row*5+col)*.03}s`;
+      c.textContent=done?'':'$'+pts;
+      if(!done)c.onclick=()=>openQ(col,row);
+      g.appendChild(c);
+    });
+  });
+}
+function renderSboard(){
+  const sb=document.getElementById('sboard');sb.innerHTML='';
+  const tid=order[turnIdx];
+  order.forEach(id=>{
+    const p=players[id];if(!p)return;
+    const t=document.createElement('div');
+    t.className='stag'+(id===tid?' active':'');
+    t.style.borderColor=p.color;t.style.color=p.color;t.style.background=p.bg;
+    if(id===tid)t.style.boxShadow=`0 0 10px ${p.color}`;
+    t.textContent=`${p.name}: $${p.score}`;
+    sb.appendChild(t);
+  });
+}
+function updateBanner(){
+  const id=order[turnIdx],p=players[id];if(!p)return;
+  document.getElementById('tnm').textContent=p.name;
+  document.getElementById('tnm').style.color=p.color;
+  document.getElementById('tdot').style.background=p.color;
+  document.getElementById('tcnt').textContent=`Q ${Object.keys(used).length+1}/20`;
+  update(ref(db,'rooms/'+roomCode+'/state'),{turnId:id,turnName:p.name,turnColor:p.color});
+}
+function nextTurn(){if(!order.length)return;turnIdx=(turnIdx+1)%order.length;updateBanner();renderSboard();}
+window.skipTurn=function(){nextTurn();}
+async function openQ(col,row){
+  cell={col,row};buzzer=null;
+  const q=Q[col][row];
+  document.getElementById('mcat').textContent=CATS[col];
+  const dd=document.getElementById('mdiff');dd.textContent=DIFFS[row];dd.className='qdiff '+DC[row];
+  document.getElementById('mpts').textContent='$'+PTS[row];
+  document.getElementById('mq').textContent=q.q;
+  document.getElementById('mans').innerHTML=q.a;
+  document.getElementById('mans').classList.remove('on');
+  document.getElementById('rbtn').style.display='';
+  document.getElementById('wrong-btn').style.display='none';
+  document.getElementById('steal-bar').style.display='none';
+  stealQueue=[];
+  document.getElementById('awda').classList.remove('on');
+  document.getElementById('bwname').textContent='';
+  document.getElementById('bstrip').style.borderColor='rgba(0,229,255,.2)';
+  document.getElementById('bstrip').innerHTML='<div>🎯 Waiting for buzz-in from players...</div><div class="bwin" id="bwname"></div>';
+  document.getElementById('qmod').classList.add('on');
+  await update(ref(db,'rooms/'+roomCode+'/state'),{activeQ:{col,row,pts:PTS[row],cat:CATS[col],diff:DIFFS[row],dc:DC[row],q:q.q},buzz:null,answerRevealed:false});
+}
+function showBuzzNotify(nm){
+  const el=document.getElementById('bnot');
+  el.textContent='🔔 '+nm+' BUZZED IN!';el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+let stealQueue=[];
+function wrongAnswer(){
+  // Build queue of teams who haven't had a chance yet (skip original buzzer)
+  if(stealQueue.length===0){
+    // first wrong — build queue from all OTHER teams
+    stealQueue=order.filter(id=>id!==buzzer);
+  } else {
+    // remove the team that just got it wrong
+    stealQueue.shift();
+  }
+  if(stealQueue.length===0){
+    // everyone has had a chance — just reveal
+    document.getElementById('wrong-btn').style.display='none';
+    document.getElementById('steal-bar').style.display='none';
+    return;
+  }
+  // Show steal panel
+  document.getElementById('wrong-btn').style.display='none';
+  const bar=document.getElementById('steal-bar');
+  bar.style.display='block';
+  const btns=document.getElementById('steal-btns');
+  btns.innerHTML='';
+  stealQueue.forEach((id,i)=>{
+    const p=players[id];if(!p)return;
+    const b=document.createElement('button');
+    b.className='steal-btn';
+    b.style.borderColor=p.color;b.style.color=p.color;
+    b.textContent=(i===0?'⭐ ':'')+p.name+(i===0?' (next up)':'');
+    b.onclick=()=>teamAnswering(id);
+    btns.appendChild(b);
+  });
+  // Also offer reveal
+  const rev=document.createElement('button');
+  rev.className='steal-btn';rev.style.borderColor='rgba(255,255,255,.2)';rev.style.color='rgba(255,255,255,.4)';
+  rev.textContent='Reveal answer instead';
+  rev.onclick=()=>{document.getElementById('steal-bar').style.display='none';revealAns();};
+  btns.appendChild(rev);
+  update(ref(db,'rooms/'+roomCode+'/state'),{stealTeamId:stealQueue[0],buzz:null});
+}
+function teamAnswering(id){
+  // A specific team is now answering — show wrong button again for this team
+  document.getElementById('steal-bar').style.display='none';
+  document.getElementById('wrong-btn').style.display='block';
+  const p=players[id];
+  document.getElementById('bwname').textContent='🎯 '+p.name+' is answering...';
+  document.getElementById('bstrip').style.borderColor=p.color;
+  buzzer=id; // track who is currently answering
+}
+window.revealAns=function(){
+  document.getElementById('mans').classList.add('on');
+  document.getElementById('rbtn').style.display='none';
+  buildAwardBtns();
+  document.getElementById('awda').classList.add('on');
+  update(ref(db,'rooms/'+roomCode+'/state'),{answerRevealed:true,answer:Q[cell.col][cell.row].a});
+};
+function buildAwardBtns(ded=false){
+  const row=document.getElementById('awdr');row.innerHTML='';
+  const pts=PTS[cell.row];
+  document.getElementById('awdpts').textContent=pts;
+  if(!ded){
+    order.forEach(id=>{
+      const p=players[id];if(!p)return;
+      const b=document.createElement('button');
+      b.className='ab';b.style.borderColor=p.color;b.style.color=p.color;
+      b.textContent=p.name;b.onclick=()=>awardPts(id,pts);
+      row.appendChild(b);
+    });
+    const d=document.createElement('button');d.className='ab ab-ded';d.textContent='Deduct $'+pts+'…';d.onclick=()=>buildAwardBtns(true);row.appendChild(d);
+    const n=document.createElement('button');n.className='ab ab-none';n.textContent='No one';n.onclick=closeQ;row.appendChild(n);
+  } else {
+    const lbl=document.createElement('div');lbl.style.cssText='width:100%;font-size:10px;letter-spacing:2px;color:var(--red);text-transform:uppercase;margin-bottom:6px';lbl.textContent='Deduct $'+pts+' from:';row.appendChild(lbl);
+    order.forEach(id=>{
+      const p=players[id];if(!p)return;
+      const b=document.createElement('button');b.className='ab ab-ded';b.textContent=p.name;b.onclick=()=>awardPts(id,-pts);row.appendChild(b);
+    });
+    const bk=document.createElement('button');bk.className='ab ab-none';bk.textContent='← Back';bk.onclick=()=>buildAwardBtns(false);row.appendChild(bk);
+  }
+}
+async function awardPts(id,pts){
+  players[id].score+=pts;
+  if(pts>0)confetti();
+  await update(ref(db,'rooms/'+roomCode+'/players/'+id),{score:players[id].score});
+  const scores=Object.fromEntries(order.map(i=>[i,players[i]?.score||0]));
+  await update(ref(db,'rooms/'+roomCode+'/state'),{scores});
+  closeQ();
+}
+async function closeQ(){
+  const{col,row}=cell;
+  used[`${col}-${row}`]=true;
+  document.getElementById('qmod').classList.remove('on');
+  await update(ref(db,'rooms/'+roomCode+'/state'),{activeQ:null,buzz:null,answerRevealed:false,used});
+  nextTurn();renderBoard();
+}
+window.outsideTap=function(e){if(e.target===document.getElementById('qmod'))closeQ();};
+window.showScores=function(){
+  const sorted=[...order].map(id=>({id,...players[id]})).sort((a,b)=>b.score-a.score);
+  const list=document.getElementById('sclist');list.innerHTML='';
+  sorted.forEach((p,i)=>{
+    const medals=['🥇','🥈','🥉'];
+    const r=document.createElement('div');r.className='srow';
+    r.style.borderColor=p.color;r.style.background=p.bg;
+    r.innerHTML=`<span><span style="font-size:18px;margin-right:6px">${medals[i]||`${i+1}.`}</span><span style="color:${p.color};font-weight:700">${p.name}</span></span><span style="color:${p.color};font-weight:700;font-size:18px">$${p.score}</span>`;
+    list.appendChild(r);
+  });
+  if(sorted.length)confetti();
+  show('sc-sc');
+};
+window.backBoard=function(){show('board-sc');renderBoard();};
+async function resetGame(){
+  if(db&&roomCode)await remove(ref(db,'rooms/'+roomCode));
+  players={};order=[];turnIdx=0;used={};cell=null;buzzer=null;started=false;
+  document.getElementById('tbanner').style.display='none';
+  show('lobby-sc');init();
+}
+window.resetGame=resetGame;
+</script>
+</body>
+</html>

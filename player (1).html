@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Muscle Jeopardy — Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#FFD700;--gold2:#FFA500;--dk:#060918;--cyn:#00e5ff;--red:#ff2d55;--grn:#00ff88}
+html,body{min-height:100vh;background:var(--dk);font-family:'Rajdhani',sans-serif;color:#fff;overflow-x:hidden;touch-action:manipulation}
+canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+.z{position:relative;z-index:2}
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:22px 18px;text-align:center}
+.screen.on{display:flex}
+.logo{font-family:'Anton',sans-serif;font-size:52px;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,.55),3px 3px 0 #7a5500;letter-spacing:3px;line-height:.9;margin-bottom:8px;animation:pop .7s cubic-bezier(.17,.67,.4,1.3) both}
+.sub{font-size:12px;letter-spacing:4px;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:28px;animation:up .6s ease .3s both}
+.card{background:rgba(255,255,255,.04);border:1.5px solid rgba(0,229,255,.22);border-radius:18px;padding:24px 20px;width:100%;max-width:380px;animation:up .6s ease .4s both}
+.lbl{font-size:11px;letter-spacing:3px;color:var(--cyn);text-transform:uppercase;margin-bottom:8px}
+.inp{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:13px 16px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:600;outline:none;margin-bottom:14px;transition:border-color .2s;-webkit-appearance:none;-webkit-text-fill-color:#fff}
+.inp:focus{border-color:var(--cyn)}
+.inp::placeholder{color:rgba(255,255,255,.22);-webkit-text-fill-color:rgba(255,255,255,.22)}
+.btn{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;letter-spacing:2px;padding:14px 28px;border-radius:10px;border:none;cursor:pointer;text-transform:uppercase;transition:all .15s;width:100%}
+.btn-g{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dk);box-shadow:0 0 26px rgba(255,215,0,.4)}
+.btn-g:active{transform:scale(.97)}
+.btn-o{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);margin-top:10px}
+.err{font-size:13px;color:var(--red);margin-top:10px;min-height:18px}
+/* WAIT */
+.wait-icon{font-size:46px;margin-bottom:14px;animation:bounce 1.2s ease infinite}
+.wait-h{font-family:'Anton',sans-serif;font-size:30px;color:var(--gold);text-shadow:0 0 18px rgba(255,215,0,.5);margin-bottom:6px}
+.wait-sub{font-size:13px;letter-spacing:2px;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:22px}
+.room-lbl{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:4px}
+.room-code{font-family:'Anton',sans-serif;font-size:34px;color:var(--gold);letter-spacing:6px;text-shadow:0 0 14px rgba(255,215,0,.4);margin-bottom:18px}
+.my-badge{border-radius:14px;padding:14px 18px;width:100%;max-width:340px;margin-bottom:14px;border:2px solid}
+.my-name{font-family:'Anton',sans-serif;font-size:26px;letter-spacing:2px}
+.my-score{font-size:13px;letter-spacing:2px;margin-top:4px;opacity:.8}
+.pw-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);width:100%;max-width:340px}
+.pw-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pw-nm{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600}
+.pw-sc{font-size:12px;opacity:.65;margin-left:auto}
+/* GAME */
+#game-sc{padding:14px;justify-content:flex-start;padding-top:16px}
+.turn-bar{width:100%;max-width:420px;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.tb-lbl{letter-spacing:2px;opacity:.55;text-transform:uppercase;font-size:10px}
+.tb-nm{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700}
+.sc-bar{display:flex;flex-wrap:wrap;gap:5px;width:100%;max-width:420px;margin-bottom:12px;justify-content:center}
+.sctag{font-family:'Oswald',sans-serif;font-size:12px;padding:5px 10px;border-radius:50px;border:1.5px solid;font-weight:600;transition:all .3s}
+.sctag.me{animation:glow 1.5s ease infinite}
+.bmini{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:100%;max-width:420px;margin-bottom:12px}
+.bcat{font-family:'Oswald',sans-serif;font-size:clamp(7px,2vw,10px);font-weight:700;color:var(--gold);text-transform:uppercase;text-align:center;padding:5px 2px;background:linear-gradient(160deg,#0d1a5e,#1a2d80);border-radius:5px;min-height:30px;display:flex;align-items:center;justify-content:center;line-height:1.1}
+.bcell{background:linear-gradient(160deg,#0d1a6e,rgba(26,58,255,.12));border:1px solid rgba(255,215,0,.18);border-radius:5px;min-height:32px;display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:clamp(10px,2.5vw,14px);color:var(--gold);text-shadow:0 0 6px rgba(255,215,0,.4)}
+.bcell.done{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.05);color:transparent;text-shadow:none}
+.wait-q{font-size:12px;letter-spacing:2px;color:rgba(255,255,255,.28);text-transform:uppercase;margin-top:6px}
+/* QUESTION */
+#q-sc{padding:20px 18px}
+.q-cat{font-size:10px;letter-spacing:4px;color:var(--cyn);text-transform:uppercase;margin-bottom:5px}
+.q-diff{display:inline-block;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:10px}
+.d0{background:rgba(0,255,136,.1);color:var(--grn);border:1px solid rgba(0,255,136,.3)}
+.d1{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.3)}
+.d2{background:rgba(255,165,0,.1);color:var(--gold2);border:1px solid rgba(255,165,0,.3)}
+.d3{background:rgba(255,45,85,.1);color:var(--red);border:1px solid rgba(255,45,85,.3)}
+.q-pts{font-family:'Anton',sans-serif;font-size:46px;color:var(--gold);text-shadow:0 0 24px rgba(255,215,0,.55);margin-bottom:12px;line-height:1}
+.q-txt{font-family:'Oswald',sans-serif;font-size:clamp(16px,4.5vw,22px);line-height:1.5;margin-bottom:26px}
+.buzz-btn{font-family:'Anton',sans-serif;font-size:22px;letter-spacing:3px;width:100%;max-width:360px;padding:22px;border:none;border-radius:16px;cursor:pointer;background:linear-gradient(135deg,var(--red),#c0002a);color:#fff;box-shadow:0 0 40px rgba(255,45,85,.5),0 6px 0 #7a0016;transition:all .15s;animation:redpulse 1.5s ease infinite;position:relative;overflow:hidden}
+.buzz-btn::before{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:rgba(255,255,255,.25);transform:skewX(-20deg);animation:sheen 3s ease-in-out 1s infinite}
+.buzz-btn:active{transform:scale(.94);box-shadow:0 0 20px rgba(255,45,85,.4),0 2px 0 #7a0016}
+.buzz-btn.buzzed{background:linear-gradient(135deg,#444,#333);box-shadow:none;animation:none;pointer-events:none}
+.buzz-btn.won{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dk);box-shadow:0 0 40px rgba(255,215,0,.6),0 6px 0 #7a5500;animation:none;pointer-events:none}
+.buzz-status{font-size:14px;letter-spacing:2px;text-transform:uppercase;margin-top:14px;min-height:20px;color:rgba(255,255,255,.4)}
+.ans-box{display:none;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.22);border-radius:12px;padding:15px;font-size:14px;line-height:1.6;text-align:left;margin-top:16px;width:100%;max-width:420px;animation:up .35s ease}
+.ans-box.on{display:block}
+/* FINAL */
+.fin-h{font-family:'Anton',sans-serif;font-size:52px;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,.55);letter-spacing:4px;line-height:.9;margin-bottom:6px}
+.fin-sub{font-size:11px;letter-spacing:4px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:22px}
+.fin-row{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-radius:10px;margin-bottom:7px;border:1.5px solid;font-family:'Oswald',sans-serif;font-size:15px;width:100%;max-width:360px;animation:up .4s ease both}
+.fin-row:nth-child(1){animation-delay:.05s}.fin-row:nth-child(2){animation-delay:.1s}.fin-row:nth-child(3){animation-delay:.16s}.fin-row:nth-child(4){animation-delay:.22s}.fin-row:nth-child(5){animation-delay:.28s}.fin-row:nth-child(6){animation-delay:.34s}
+@keyframes pop{from{opacity:0;transform:scale(.65) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes redpulse{0%,100%{box-shadow:0 0 40px rgba(255,45,85,.5),0 6px 0 #7a0016}50%{box-shadow:0 0 70px rgba(255,45,85,.9),0 6px 0 #7a0016}}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes sheen{0%,70%,100%{left:-60%}30%{left:120%}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<!-- JOIN -->
+<div id="join-sc" class="screen z on">
+  <div class="logo">MUSCLE<br>JEOPARDY</div>
+  <div class="sub">BIOL 2457 · Enter your room code</div>
+  <div class="card">
+    <div class="lbl">Room Code</div>
+    <input class="inp" id="code-inp" type="text" placeholder="e.g. AB3XY" maxlength="5" autocomplete="off" autocorrect="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:4px;font-size:22px;text-align:center" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')tryJoin()"/>
+    <div class="lbl">Your Name</div>
+    <input class="inp" id="name-inp" type="text" placeholder="Your name or group" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')tryJoin()"/>
+    <button class="btn btn-g" onclick="tryJoin()">JOIN GAME</button>
+    <div class="err" id="jerr"></div>
+  </div>
+</div>
+
+<!-- WAIT ROOM -->
+<div id="wait-sc" class="screen z">
+  <div class="wait-icon">⏳</div>
+  <div class="wait-h">You're In!</div>
+  <div class="wait-sub">Waiting for host to start...</div>
+  <div class="room-lbl">Room</div>
+  <div class="room-code" id="w-code"></div>
+  <div class="my-badge" id="my-badge"></div>
+  <div id="pw-list"></div>
+</div>
+
+<!-- GAME BOARD -->
+<div id="game-sc" class="screen z">
+  <div class="turn-bar" id="tbar"></div>
+  <div class="sc-bar" id="sc-bar"></div>
+  <div class="bmini" id="bmini"></div>
+  <div class="wait-q">Waiting for host to pick a question...</div>
+</div>
+
+<!-- QUESTION -->
+<div id="q-sc" class="screen z">
+  <div class="q-cat" id="qcat"></div>
+  <div class="q-diff" id="qdiff"></div>
+  <div class="q-pts" id="qpts"></div>
+  <div class="q-txt" id="qtxt"></div>
+  <button class="buzz-btn" id="buzzBtn" onclick="doBuzz()">BUZZ IN! 🔔</button>
+  <div class="buzz-status" id="bstat"></div>
+  <div class="ans-box" id="ansbox"></div>
+</div>
+
+<!-- FINAL -->
+<div id="fin-sc" class="screen z">
+  <div class="fin-h">GAME<br>OVER!</div>
+  <div class="fin-sub">Final Scores</div>
+  <div id="fin-list"></div>
+  <button class="btn btn-g" style="max-width:300px;margin-top:20px" onclick="show('join-sc')">Play Again</button>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,set,onValue,update}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── PASTE THE SAME firebaseConfig HERE as in host.html ──────────
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyBRfWn7HNIz46OgOA4tYQvxR_rWYmmWqIM",
+  authDomain:"jeopardy-game-b8a10.firebaseapp.com",
+  databaseURL:"https://jeopardy-game-b8a10-default-rtdb.firebaseio.com",
+  projectId:"jeopardy-game-b8a10",
+  storageBucket:"jeopardy-game-b8a10.firebasestorage.app",
+  messagingSenderId:"964948969885",
+  appId:"1:964948969885:web:4afd045c03292b387a0774"
+};
+// ─────────────────────────────────────────────────────────────────
+
+// STARS
+(()=>{const c=document.getElementById('bg'),x=c.getContext('2d');let s=[];const rs=()=>{c.width=innerWidth;c.height=innerHeight};const mk=()=>{s=[];for(let i=0;i<120;i++)s.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.2+.2,a:Math.random(),v:Math.random()*.003+.001})};const dr=()=>{x.clearRect(0,0,c.width,c.height);s.forEach(p=>{p.a+=p.v;if(p.a>1||p.a<0)p.v=-p.v;x.globalAlpha=p.a*.65;x.fillStyle='#fff';x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fill()});x.globalAlpha=1;requestAnimationFrame(dr)};rs();mk();dr();window.addEventListener('resize',()=>{rs();mk()})})();
+
+const CATS=['Muscle Structure','Contraction Mechanics','Action Potentials','Fiber Types & Energy','Muscle Performance'];
+const PTS=[200,400,600,800];
+
+let db,myId='',myName='',myColor='',myBg='',roomCode='',gameRef=null;
+let players={},used={},currentQ=null,hasBuzzed=false;
+
+try{
+  const app=initializeApp(FIREBASE_CONFIG);
+  db=getDatabase(app);
+}catch(e){
+  document.getElementById('jerr').textContent='⚠ Firebase not configured. Ask your teacher to set up the game.';
+}
+
+// Pre-fill room code from URL param
+const urlRoom=new URLSearchParams(location.search).get('room');
+if(urlRoom){
+  document.getElementById('code-inp').value=urlRoom.toUpperCase();
+  document.getElementById('name-inp').focus();
+}
+
+window.show=function(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');}
+
+window.tryJoin=async function(){
+  const code=document.getElementById('code-inp').value.trim().toUpperCase();
+  const name=document.getElementById('name-inp').value.trim();
+  const err=document.getElementById('jerr');
+  if(code.length<3){err.textContent='Enter the room code!';return}
+  if(!name){err.textContent='Enter your name!';return}
+  if(!db){err.textContent='Firebase not configured — ask your teacher.';return}
+  err.textContent='Joining...';
+  roomCode=code;myName=name;
+  myId='p_'+Math.random().toString(36).slice(2,10);
+  gameRef=ref(db,'rooms/'+roomCode);
+  // Check room exists
+  const snap=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js").then(m=>m.get(gameRef));
+  if(!snap.exists()){err.textContent="Room not found — check the code!";return}
+  // Register player
+  await set(ref(db,'rooms/'+roomCode+'/players/'+myId),{name,score:0});
+  // Wait for host to assign our color
+  onValue(ref(db,'rooms/'+roomCode+'/players/'+myId),s=>{
+    const d=s.val();
+    if(d&&!myColor){
+      // Color assigned by host via order — we just track our slot
+      document.getElementById('w-code').textContent=roomCode;
+      err.textContent='';
+      show('wait-sc');
+      listenToGame();
+    }
+  });
+  setTimeout(()=>{if(!myColor&&document.getElementById('join-sc').classList.contains('on'))err.textContent="Room not found or full — check the code!"},4000);
+};
+
+function listenToGame(){
+  // Listen to all players for the wait room list
+  onValue(ref(db,'rooms/'+roomCode+'/players'),snap=>{
+    players=snap.val()||{};
+    renderWaitList();
+    renderScoreBar();
+    // Update my badge score
+    if(players[myId]){
+      const sc=document.querySelector('#my-badge .my-score');
+      if(sc)sc.textContent='$'+(players[myId].score||0);
+    }
+    // Update final scores if visible
+    if(document.getElementById('fin-sc').classList.contains('on')) renderFinal();
+  });
+  // Listen to game state
+  onValue(ref(db,'rooms/'+roomCode+'/state'),snap=>{
+    const s=snap.val();
+    if(!s)return;
+    // Assign color from player order if not yet set
+    if(!myColor){
+      const COLORS=['#4d6fff','#ff2d55','#00ff88','#ffd700','#00e5ff','#bf5af2'];
+      const BGS=['rgba(77,111,255,.14)','rgba(255,45,85,.14)','rgba(0,255,136,.14)','rgba(255,215,0,.14)','rgba(0,229,255,.14)','rgba(191,90,242,.14)'];
+      const idx=Object.keys(players).indexOf(myId);
+      if(idx>=0){myColor=COLORS[idx]||'#fff';myBg=BGS[idx]||'transparent';}
+      renderMyBadge();
+    }
+    used=s.used||{};
+    renderBoardMini();
+    renderTurnBar(s.turnId,s.turnName,s.turnColor);
+    renderScoreBar();
+    if(s.started && document.getElementById('wait-sc').classList.contains('on')) show('game-sc');
+    if(s.started && !s.activeQ && !document.getElementById('game-sc').classList.contains('on') && !document.getElementById('q-sc').classList.contains('on') && !document.getElementById('fin-sc').classList.contains('on')) show('game-sc');
+    if(s.activeQ){
+      openQuestion(s.activeQ);
+    } else {
+      if(document.getElementById('q-sc').classList.contains('on')) show('game-sc');
+    }
+    if(s.answerRevealed && s.answer){
+      document.getElementById('ansbox').innerHTML=s.answer;
+      document.getElementById('ansbox').classList.add('on');
+    }
+    if(s.scores){
+      Object.entries(s.scores).forEach(([id,sc])=>{if(players[id])players[id].score=sc;});
+      renderScoreBar();
+    }
+  });
+}
+
+function renderMyBadge(){
+  const b=document.getElementById('my-badge');
+  b.style.borderColor=myColor;b.style.background=myBg;
+  b.innerHTML=`<div style="font-size:9px;letter-spacing:2px;color:${myColor};text-transform:uppercase;opacity:.7;margin-bottom:3px">You are playing as</div><div class="my-name" style="color:${myColor}">${myName}</div><div class="my-score" style="color:${myColor}">$${players[myId]?.score||0}</div>`;
+}
+
+function renderWaitList(){
+  const list=document.getElementById('pw-list');list.innerHTML='';
+  const COLORS=['#4d6fff','#ff2d55','#00ff88','#ffd700','#00e5ff','#bf5af2'];
+  Object.entries(players).forEach(([id,p],i)=>{
+    const r=document.createElement('div');r.className='pw-row';
+    const c=COLORS[i]||'#fff';
+    r.innerHTML=`<div class="pw-dot" style="background:${c}"></div><div class="pw-nm" style="color:${c}">${p.name}${id===myId?' (you)':''}</div><div class="pw-sc" style="color:${c}">$${p.score||0}</div>`;
+    list.appendChild(r);
+  });
+}
+
+function renderTurnBar(tid,tnm,tc){
+  const bar=document.getElementById('tbar');
+  const isMe=tid===myId;
+  const c=tc||'rgba(255,255,255,.1)';
+  bar.style.background=isMe?'rgba(255,215,0,.08)':'rgba(255,255,255,.04)';
+  bar.style.border='1px solid '+(isMe?'rgba(255,215,0,.4)':'rgba(255,255,255,.08)');
+  bar.innerHTML=`<div><div class="tb-lbl">Current Turn</div><div class="tb-nm" style="color:${c}">${tnm||'—'}</div></div><div style="font-size:${isMe?'12px':'10px'};color:${isMe?'var(--gold)':'rgba(255,255,255,.3)'};letter-spacing:2px;text-transform:uppercase">${isMe?'⭐ YOUR TURN':'Waiting...'}</div>`;
+}
+
+function renderScoreBar(){
+  const bar=document.getElementById('sc-bar');bar.innerHTML='';
+  const COLORS=['#4d6fff','#ff2d55','#00ff88','#ffd700','#00e5ff','#bf5af2'];
+  const BGS=['rgba(77,111,255,.14)','rgba(255,45,85,.14)','rgba(0,255,136,.14)','rgba(255,215,0,.14)','rgba(0,229,255,.14)','rgba(191,90,242,.14)'];
+  Object.entries(players).forEach(([id,p],i)=>{
+    const c=COLORS[i]||'#fff',bg=BGS[i]||'transparent';
+    const t=document.createElement('div');
+    t.className='sctag'+(id===myId?' me':'');
+    t.style.borderColor=c;t.style.color=c;t.style.background=bg;
+    if(id===myId)t.style.boxShadow=`0 0 8px ${c}`;
+    t.textContent=`${p.name}: $${p.score||0}`;
+    bar.appendChild(t);
+  });
+}
+
+function renderBoardMini(){
+  const g=document.getElementById('bmini');g.innerHTML='';
+  CATS.forEach(c=>{const h=document.createElement('div');h.className='bcat';h.textContent=c;g.appendChild(h);});
+  PTS.forEach((pts,row)=>{
+    CATS.forEach((_,col)=>{
+      const k=`${col}-${row}`,done=used[k];
+      const c=document.createElement('div');
+      c.className='bcell'+(done?' done':'');
+      c.textContent=done?'':'$'+pts;
+      g.appendChild(c);
+    });
+  });
+}
+
+function openQuestion(q){
+  if(currentQ&&currentQ.col===q.col&&currentQ.row===q.row&&document.getElementById('q-sc').classList.contains('on'))return;
+  currentQ=q;hasBuzzed=false;
+  document.getElementById('qcat').textContent=q.cat;
+  const dd=document.getElementById('qdiff');dd.textContent=q.diff;dd.className='q-diff '+q.dc;
+  document.getElementById('qpts').textContent='$'+q.pts;
+  document.getElementById('qtxt').textContent=q.q;
+  const bb=document.getElementById('buzzBtn');
+  bb.className='buzz-btn';bb.textContent='BUZZ IN! 🔔';
+  document.getElementById('bstat').textContent='';
+  document.getElementById('ansbox').innerHTML='';
+  document.getElementById('ansbox').classList.remove('on');
+  show('q-sc');
+}
+
+window.doBuzz=function(){
+  if(hasBuzzed||!currentQ||!db)return;
+  hasBuzzed=true;
+  const bb=document.getElementById('buzzBtn');
+  bb.className='buzz-btn buzzed';bb.textContent='Buzzed! ⚡';
+  update(ref(db,'rooms/'+roomCode+'/state'),{buzz:{id:myId,name:myName,ts:Date.now()}});
+  if(navigator.vibrate)navigator.vibrate(150);
+  // Listen for buzz result
+  onValue(ref(db,'rooms/'+roomCode+'/state/buzz'),s=>{
+    const bz=s.val();
+    if(!bz)return;
+    if(bz.id===myId){
+      bb.className='buzz-btn won';bb.textContent='YOU GOT IT! 🎉';
+      document.getElementById('bstat').textContent='';
+      if(navigator.vibrate)navigator.vibrate([200,80,200]);
+    } else {
+      bb.className='buzz-btn buzzed';bb.textContent='⛔ '+bz.name+' buzzed first';
+      document.getElementById('bstat').textContent='Better luck next time!';
+    }
+  },{onlyOnce:true});
+};
+
+function renderFinal(){
+  const COLORS=['#4d6fff','#ff2d55','#00ff88','#ffd700','#00e5ff','#bf5af2'];
+  const BGS=['rgba(77,111,255,.14)','rgba(255,45,85,.14)','rgba(0,255,136,.14)','rgba(255,215,0,.14)','rgba(0,229,255,.14)','rgba(191,90,242,.14)'];
+  const sorted=Object.entries(players).map(([id,p],i)=>({id,...p,color:COLORS[i]||'#fff',bg:BGS[i]||'transparent'})).sort((a,b)=>(b.score||0)-(a.score||0));
+  const list=document.getElementById('fin-list');list.innerHTML='';
+  sorted.forEach((p,i)=>{
+    const medals=['🥇','🥈','🥉'];
+    const r=document.createElement('div');r.className='fin-row';
+    r.style.borderColor=p.color;r.style.background=p.bg;
+    r.innerHTML=`<span><span style="font-size:18px;margin-right:6px">${medals[i]||`${i+1}.`}</span><span style="color:${p.color};font-weight:700">${p.name}${p.id===myId?' ★':''}</span></span><span style="color:${p.color};font-weight:700;font-size:17px">$${p.score||0}</span>`;
+    list.appendChild(r);
+  });
+}
+</script>
+</body>
+</html>
